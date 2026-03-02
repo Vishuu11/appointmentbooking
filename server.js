@@ -438,7 +438,7 @@ app.get('/oauth2callback', requireLocalAuth, async (req, res) => {
       console.warn('Post-login event sync failed:', syncError?.message || syncError);
     }
 
-    res.redirect('/app.html');
+    res.redirect('/');
   } catch (error) {
     console.error('OAuth callback error:', error);
     res.status(500).send('Authentication failed. Check server logs.');
