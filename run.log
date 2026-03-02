@@ -1,0 +1,6 @@
+
+> google-calendar-viewer@1.0.0 start
+> node server.js
+
+[dotenv@17.2.4] injecting env (5) from .env -- tip: 🗂️ backup and recover secrets: https://dotenvx.com/ops
+Google Calendar Viewer running at http://localhost:3000

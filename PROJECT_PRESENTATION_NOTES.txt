@@ -1,0 +1,144 @@
+Google Calendar Viewer (View / Modify / Delete)
+
+1) One-Line Summary
+A local Node.js + Express web app that authenticates with Google OAuth2, lists upcoming events from your Google Calendar, and lets you modify or delete events from the browser.
+
+2) Problem It Solves
+- Gives a simple “single screen” view of your upcoming events.
+- Demonstrates end-to-end Google OAuth2 + Calendar API integration.
+- Provides CRUD-style operations (read/update/delete) for calendar events in a minimal UI.
+
+3) Tech Stack (What Is Used For What)
+- Node.js (runtime)
+  Runs the backend server.
+- Express 5 (web framework)
+  Serves static UI files and exposes REST endpoints used by the frontend.
+- express-session (session management).         
+  Stores OAuth tokens and user profile in a server-side session (cookie identifies the session).
+- googleapis (Google API client)
+  Implements OAuth2 flow and calls Google Calendar API v3 + Google OAuth2 userinfo.
+- dotenv
+  Loads configuration from `.env` (client ID/secret, redirect URI, session secret, port).
+- Frontend: plain HTML/CSS/vanilla JS
+  Renders events, opens a Modify dialog, calls backend endpoints via `fetch()`.
+- Local filesystem storage
+  Saves the last fetched events JSON per user to `data/<sanitized-email>/events-latest.json`.
+
+4) How It Works (Architecture)
+Browser UI (public/index.html + public/app.js)
+  -> calls backend REST endpoints
+Express server (server.js)
+  -> OAuth2 (Google)
+  -> Google Calendar API v3
+  -> writes `events-latest.json`
+
+Key idea: the browser never talks to Google directly. The server holds OAuth tokens in the session and performs Google API calls.
+
+5) End-to-End Flow (What Happens When You Use It)
+- User opens `http://localhost:3000`
+- Click “Connect Google Calendar”
+  - GET `/auth/google`
+  - Server generates an OAuth `state` value (CSRF protection) and redirects to Google consent screen.
+- Google redirects back to the app
+  - GET `/oauth2callback?code=...&state=...`
+  - Server verifies `state`, exchanges `code` for `tokens`, stores tokens in session.
+  - Server also fetches basic profile (name/email/picture) and stores it in session.
+- UI bootstraps
+  - GET `/api/me` to check if authenticated and show profile.
+  - GET `/api/tokeninfo` to see granted scopes (enables/disables Modify/Delete).
+  - GET `/api/events?maxResults=N` to list upcoming events.
+- Optional actions
+  - Modify event: UI loads event with GET `/api/events/:eventId`, then saves with PATCH `/api/events/:eventId`
+  - Delete event: UI calls DELETE `/api/events/:eventId`
+  - Download JSON: UI downloads last payload client-side; fallback endpoint GET `/api/events/download`
+
+6) Backend API (What Each Endpoint Does)
+Auth
+- GET `/auth/google`
+  Starts OAuth and redirects to Google.
+- GET `/oauth2callback`
+  OAuth redirect handler: validates `state`, stores tokens, fetches profile.
+- POST `/auth/logout`
+  Clears the session (forces re-consent on next login).
+
+User / Debug
+- GET `/api/me`
+  Returns `{ authenticated, user, grantedScopes }`.
+- GET `/api/tokeninfo`
+  Returns token scopes from Google (useful when debugging 403 scope errors).
+
+Calendar data
+- GET `/api/events?maxResults=20&timeMin=<ISO>`
+  Lists events from `calendarId: 'primary'`, writes `events-latest.json`.
+- GET `/api/events/:eventId`
+  Fetches a single event (used to pre-fill the Modify dialog).
+- PATCH `/api/events/:eventId?sendUpdates=all|none|externalOnly`
+  Updates editable fields (title/description/location/start/end). Supports all-day and timed events.
+- DELETE `/api/events/:eventId?sendUpdates=all|none|externalOnly`
+  Deletes an event.
+- GET `/api/events/download`
+  Downloads the last saved JSON file from disk.
+
+7) Important Implementation Details (How Things Are Done Here)
+- OAuth2 CSRF protection via `state`
+  `req.session.oauthState` is generated server-side and validated in `/oauth2callback`.
+- Scopes and permissions
+  The app requests `https://www.googleapis.com/auth/calendar.events` (read/write). If you previously consented to readonly scopes, you must logout and re-connect.
+- Session-based token storage
+  Tokens are stored in `req.session.tokens`. This is a simple local approach (no database).
+- Per-user saved JSON
+  Email is sanitized to a safe folder name. Last fetch/write is kept in `req.session.lastEventsPath`.
+- Modify dialog supports all-day vs timed
+  All-day events use `{ date: 'YYYY-MM-DD' }` and Google’s `end.date` is exclusive; UI shows an inclusive end date and converts back.
+- “sendUpdates” parameter
+  Passed through to Google Calendar API so attendee notifications can be controlled.
+
+8) Demo Script (5-7 minutes)
+1. Start server: `npm start` (Node 18+)
+2. Open `http://localhost:3000`
+3. Click Connect and authorize.
+4. Point out profile card and granted scopes text.
+5. Refresh and show event list.
+6. Modify a small field (title/location) and save.
+7. Delete an event (explain attendee notifications).
+8. Download JSON and open the file to show the payload structure.
+
+9) Common Issues / Troubleshooting
+- 403 “insufficient authentication scopes”
+  Fix: ensure OAuth consent screen includes `calendar.events`, then POST `/auth/logout` (Logout button) and reconnect.
+- Redirect URI mismatch
+  Fix: Google Cloud OAuth client must include `http://localhost:3000/oauth2callback` exactly.
+
+10) Glossary (Terms Used In This Project)
+- OAuth2
+  Authorization framework used to obtain tokens to call Google APIs on behalf of the user.
+- Consent screen
+  Google UI where the user grants requested scopes.
+- Redirect URI
+  The callback URL Google redirects to after consent; must match what’s configured in Google Cloud.
+- Scope
+  A permission string (here, Calendar event access). Missing scopes cause 403 errors.
+- Access token / Refresh token
+  Access token is used for API calls; refresh token enables long-lived access (requested via `access_type: 'offline'` + `prompt: 'consent'`).
+- `state`
+  Random anti-CSRF value passed through OAuth.
+- Session (express-session)
+  Server-side storage keyed by a cookie; used to keep tokens and user info.
+- Google Calendar API v3
+  The API used for events.list / events.get / events.patch / events.delete.
+- `calendarId: 'primary'`
+  Google’s alias for the user’s main calendar.
+- `eventId`
+  Unique ID for a calendar event (used in modify/delete routes).
+- All-day event
+  Event represented by a date-only start/end. Google uses an exclusive end date.
+- `sendUpdates`
+  Google Calendar option that controls attendee notifications on updates/deletes.
+
+11) Project Layout
+- `server.js`: Express server + OAuth + Calendar API routes
+- `public/index.html`: UI markup
+- `public/app.js`: UI logic (fetch, render, modify/delete, download)
+- `public/styles.css`: UI styling
+- `.env.example`: required environment variables
+- `data/`: saved per-user JSON snapshots
