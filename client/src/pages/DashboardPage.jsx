@@ -18,7 +18,9 @@ function formatDate(value) {
   if (!value) return 'N/A';
   if (isAllDay(value)) return value;
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return String(value);
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${pad(date.getDate())} / ${pad(date.getMonth() + 1)} / ${date.getFullYear()}`;
 }
 
 function getStatus(event) {
