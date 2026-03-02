@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: appointmentbooking
+    env: node
+    plan: free
+    buildCommand: npm install && npm --prefix client install && npm run client:build
+    startCommand: npm start
+    autoDeploy: true
+    envVars:
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_REDIRECT_URI
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB_NAME
+        sync: false
