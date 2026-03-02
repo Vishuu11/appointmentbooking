@@ -281,8 +281,6 @@ app.use(
 
 app.use(express.json({ limit: '256kb' }));
 
-app.use(express.static(path.join(__dirname, 'public')));
-
 
 const SCOPES = [
   // Read/write access to events (includes reading events).
@@ -947,6 +945,8 @@ app.get('/api/storage-status', requireLocalAuth, async (req, res) => {
     return res.status(500).json({ message: 'Failed to read storage status.' });
   }
 });
+
+app.use(express.static(path.join(__dirname, 'public'), { fallthrough: true }));
 
 app.get(/^\/(?!api|auth|oauth2callback).*/, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
