@@ -23,6 +23,15 @@ function formatDate(value) {
   return `${pad(date.getDate())} / ${pad(date.getMonth() + 1)} / ${date.getFullYear()}`;
 }
 
+function formatTime(value) {
+  if (!value) return 'N/A';
+  if (isAllDay(value)) return 'All day';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function getStatus(event) {
   const now = Date.now();
   const start = toDateOrNull(event.start)?.getTime();
@@ -217,6 +226,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="event-meta">
                     <span className="truncate">📅 {formatDate(event.start)}</span>
+                    <span className="truncate">🕒 {formatTime(event.start)}</span>
                     <span className="truncate">✉️ {event.organizer || 'Unknown'}</span>
                   </div>
                   <div className="event-divider"></div>
