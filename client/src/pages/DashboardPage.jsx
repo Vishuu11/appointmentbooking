@@ -214,9 +214,8 @@ export default function DashboardPage() {
                     <Badge variant={status}>{status}</Badge>
                   </div>
                   <div className="event-meta">
-                    <span className="truncate">?? {formatDate(event.start)}</span>
-                    <span className="truncate">?? {event.location || 'N/A'}</span>
-                    <span className="truncate">?? {event.organizer || 'Unknown'}</span>
+                    <span className="truncate">📅 {formatDate(event.start)}</span>
+                    <span className="truncate">✉️ {event.organizer || 'Unknown'}</span>
                   </div>
                   <div className="event-divider"></div>
                   <p className="muted break">{event.description || 'No description provided.'}</p>
