@@ -11,7 +11,7 @@ dotenv.config();
 const {
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI = 'http://localhost:3000/oauth2callback',
+  GOOGLE_REDIRECT_URI,
   SESSION_SECRET,
   MONGODB_URI,
   MONGODB_DB_NAME,
@@ -30,6 +30,11 @@ if (!SESSION_SECRET) {
 
 if (!MONGODB_URI) {
   console.error('Missing MONGODB_URI in .env');
+  process.exit(1);
+}
+
+if (!GOOGLE_REDIRECT_URI) {
+  console.error('Missing GOOGLE_REDIRECT_URI in .env');
   process.exit(1);
 }
 
