@@ -14,13 +14,22 @@ function isAllDay(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+function formatAllDay(value) {
+  const parts = String(value).split('-');
+  if (parts.length !== 3) return String(value);
+  const [year, month, day] = parts;
+  if (!year || !month || !day) return String(value);
+  const pad = (num) => String(num).padStart(2, '0');
+  return `${pad(day)}/${pad(month)}/${year}`;
+}
+
 function formatDate(value) {
   if (!value) return 'N/A';
-  if (isAllDay(value)) return value;
+  if (isAllDay(value)) return formatAllDay(value);
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
   const pad = (num) => String(num).padStart(2, '0');
-  return `${pad(date.getDate())} / ${pad(date.getMonth() + 1)} / ${date.getFullYear()}`;
+  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 }
 
 function formatTime(value) {

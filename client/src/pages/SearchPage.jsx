@@ -80,11 +80,32 @@ function extractPatientAndTreatment(event) {
   };
 }
 
+function pad(value) {
+  return String(value).padStart(2, '0');
+}
+
+function formatAllDay(value) {
+  const parts = String(value).split('-');
+  if (parts.length !== 3) return String(value);
+  const [year, month, day] = parts;
+  if (!year || !month || !day) return String(value);
+  return `${pad(day)}/${pad(month)}/${year}`;
+}
+
 function formatDate(value) {
   if (!value) return 'N/A';
-  if (isAllDay(value)) return value;
+  if (isAllDay(value)) return formatAllDay(value);
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+  if (Number.isNaN(date.getTime())) return String(value);
+
+  const day = pad(date.getDate());
+  const month = pad(date.getMonth() + 1);
+  const year = date.getFullYear();
+  const hours = pad(date.getHours());
+  const minutes = pad(date.getMinutes());
+  const hasTime = hours !== '00' || minutes !== '00' || String(value).includes('T');
+
+  return hasTime ? `${day}/${month}/${year} ${hours}:${minutes}` : `${day}/${month}/${year}`;
 }
 
 export default function SearchPage() {
@@ -333,8 +354,14 @@ export default function SearchPage() {
                   className="input"
                   type="date"
                   value={filters.fromDate}
-                  max={filters.toDate || undefined}
-                  onChange={(e) => setFilters((f) => ({ ...f, fromDate: e.target.value }))}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFilters((f) => ({
+                      ...f,
+                      fromDate: value,
+                      toDate: f.toDate && value && f.toDate < value ? '' : f.toDate,
+                    }));
+                  }}
                   aria-label="From date"
                 />
               </label>
