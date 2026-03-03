@@ -90,7 +90,6 @@ export default function DashboardPage() {
   const [editEvent, setEditEvent] = useState(null);
   const [editValues, setEditValues] = useState({
     summary: '',
-    description: '',
     startDate: '',
     startTime: '00:00',
     endDate: '',
@@ -161,7 +160,6 @@ export default function DashboardPage() {
     setEditEvent(event);
     setEditValues({
       summary: event.summary || '',
-      description: event.description || '',
       startDate: start.date,
       startTime: start.time,
       endDate: end.date,
@@ -202,7 +200,6 @@ export default function DashboardPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         summary: String(editValues.summary ?? ''),
-        description: String(editValues.description ?? ''),
         start: { dateTime: startDateTime, timeZone },
         end: { dateTime: endDateTime, timeZone },
       }),
@@ -289,13 +286,12 @@ export default function DashboardPage() {
           <div className={`events ${timeline ? 'timeline' : ''}`}>
             {events.map((event) => {
               const status = getStatus(event);
-              const rangeLabel = formatRange(event.start, event.end);
               return (
                 <Card key={event.id} className={`event-card ${timeline ? 'timeline-item' : ''}`}>
                   {timeline && <span className="timeline-marker"></span>}
                   <div className="event-title">
                     <h4 className="truncate" title={event.summary || ''}>
-                      {(event.summary || '(No title)')}{rangeLabel ? ` (${rangeLabel})` : ''}
+                      {event.summary || '(No title)'}
                     </h4>
                     <Badge variant={status}>{status}</Badge>
                   </div>
@@ -345,15 +341,6 @@ export default function DashboardPage() {
                 className="input"
                 value={editValues.summary}
                 onChange={(e) => setEditValues((v) => ({ ...v, summary: e.target.value }))}
-              />
-            </label>
-            <label className="field">
-              Description
-              <textarea
-                className="input"
-                rows="4"
-                value={editValues.description}
-                onChange={(e) => setEditValues((v) => ({ ...v, description: e.target.value }))}
               />
             </label>
             <label className="field">
