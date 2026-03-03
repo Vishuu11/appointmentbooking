@@ -197,16 +197,22 @@ export default function DashboardPage() {
     }
 
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    await fetch(`/api/events/${encodeURIComponent(editEvent.id)}?sendUpdates=all`, {
+    const resp = await fetch(`/api/events/${encodeURIComponent(editEvent.id)}?sendUpdates=all`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        summary: editValues.summary,
-        description: editValues.description,
+        summary: String(editValues.summary ?? ''),
+        description: String(editValues.description ?? ''),
         start: { dateTime: startDateTime, timeZone },
         end: { dateTime: endDateTime, timeZone },
       }),
     });
+    if (!resp.ok) {
+      const data = await resp.json().catch(() => null);
+      setEditError(data?.message || 'Failed to update event.');
+      return;
+    }
+    setEditError('');
     setEditEvent(null);
     await loadEvents();
   };
