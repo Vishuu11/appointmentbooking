@@ -15,6 +15,32 @@ function isAllDay(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+function pad(value) {
+  return String(value).padStart(2, '0');
+}
+
+function toDateParts(value) {
+  if (!value) return { date: '', time: '00:00', allDay: false };
+  if (isAllDay(value)) return { date: value, time: '00:00', allDay: true };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { date: '', time: '00:00', allDay: false };
+  return {
+    date: `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
+    time: `${pad(date.getHours())}:${pad(date.getMinutes())}`,
+    allDay: false,
+  };
+}
+
+function formatRange(start, end) {
+  if (!start && !end) return '';
+  const allDay = isAllDay(start) && isAllDay(end);
+  const startLabel = formatDisplayDate(start, { includeTime: !allDay, fallback: '' });
+  const endLabel = formatDisplayDate(end || start, { includeTime: !allDay, fallback: '' });
+  if (!startLabel) return '';
+  if (!endLabel || endLabel === startLabel) return startLabel;
+  return `${startLabel} - ${endLabel}`;
+}
+
 function formatDate(value) {
   if (!value) return 'N/A';
   if (isAllDay(value)) return formatDisplayDate(value, { includeTime: false, fallback: 'N/A' });
@@ -62,7 +88,15 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({ total: 0, today: 0, week: 0 });
   const [timeline, setTimeline] = useState(false);
   const [editEvent, setEditEvent] = useState(null);
-  const [editValues, setEditValues] = useState({ summary: '', location: '', description: '' });
+  const [editValues, setEditValues] = useState({
+    summary: '',
+    description: '',
+    startDate: '',
+    startTime: '00:00',
+    endDate: '',
+    endTime: '00:00',
+  });
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     const loadAuth = async () => {
@@ -122,20 +156,56 @@ export default function DashboardPage() {
   };
 
   const startEdit = (event) => {
+    const start = toDateParts(event.start);
+    const end = toDateParts(event.end || event.start);
     setEditEvent(event);
     setEditValues({
       summary: event.summary || '',
-      location: event.location || '',
       description: event.description || '',
+      startDate: start.date,
+      startTime: start.time,
+      endDate: end.date,
+      endTime: end.time,
     });
+    setEditError('');
   };
 
   const saveEdit = async () => {
     if (!editEvent) return;
+    const startDate = editValues.startDate;
+    const endDate = editValues.endDate;
+    const startTime = editValues.startTime || '00:00';
+    const endTime = editValues.endTime || '00:00';
+
+    if (!startDate || !endDate) {
+      setEditError('Start and end date are required.');
+      return;
+    }
+
+    const startDateTime = `${startDate}T${startTime}:00`;
+    const endDateTime = `${endDate}T${endTime}:00`;
+    const startObj = new Date(startDateTime);
+    const endObj = new Date(endDateTime);
+
+    if (Number.isNaN(startObj.getTime()) || Number.isNaN(endObj.getTime())) {
+      setEditError('Please provide valid start and end date/time.');
+      return;
+    }
+    if (endObj <= startObj) {
+      setEditError('End date/time must be after start date/time.');
+      return;
+    }
+
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     await fetch(`/api/events/${encodeURIComponent(editEvent.id)}?sendUpdates=all`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(editValues),
+      body: JSON.stringify({
+        summary: editValues.summary,
+        description: editValues.description,
+        start: { dateTime: startDateTime, timeZone },
+        end: { dateTime: endDateTime, timeZone },
+      }),
     });
     setEditEvent(null);
     await loadEvents();
@@ -213,12 +283,13 @@ export default function DashboardPage() {
           <div className={`events ${timeline ? 'timeline' : ''}`}>
             {events.map((event) => {
               const status = getStatus(event);
+              const rangeLabel = formatRange(event.start, event.end);
               return (
                 <Card key={event.id} className={`event-card ${timeline ? 'timeline-item' : ''}`}>
                   {timeline && <span className="timeline-marker"></span>}
                   <div className="event-title">
                     <h4 className="truncate" title={event.summary || ''}>
-                      {event.summary || '(No title)'}
+                      {(event.summary || '(No title)')}{rangeLabel ? ` (${rangeLabel})` : ''}
                     </h4>
                     <Badge variant={status}>{status}</Badge>
                   </div>
@@ -271,14 +342,6 @@ export default function DashboardPage() {
               />
             </label>
             <label className="field">
-              Location
-              <input
-                className="input"
-                value={editValues.location}
-                onChange={(e) => setEditValues((v) => ({ ...v, location: e.target.value }))}
-              />
-            </label>
-            <label className="field">
               Description
               <textarea
                 className="input"
@@ -287,6 +350,43 @@ export default function DashboardPage() {
                 onChange={(e) => setEditValues((v) => ({ ...v, description: e.target.value }))}
               />
             </label>
+            <label className="field">
+              Start Date
+              <input
+                className="input"
+                type="date"
+                value={editValues.startDate}
+                onChange={(e) => setEditValues((v) => ({ ...v, startDate: e.target.value }))}
+              />
+            </label>
+            <label className="field">
+              Start Time
+              <input
+                className="input"
+                type="time"
+                value={editValues.startTime}
+                onChange={(e) => setEditValues((v) => ({ ...v, startTime: e.target.value }))}
+              />
+            </label>
+            <label className="field">
+              End Date
+              <input
+                className="input"
+                type="date"
+                value={editValues.endDate}
+                onChange={(e) => setEditValues((v) => ({ ...v, endDate: e.target.value }))}
+              />
+            </label>
+            <label className="field">
+              End Time
+              <input
+                className="input"
+                type="time"
+                value={editValues.endTime}
+                onChange={(e) => setEditValues((v) => ({ ...v, endTime: e.target.value }))}
+              />
+            </label>
+            {editError && <p className="filter-error" role="alert">{editError}</p>}
             <div className="modal-actions">
               <Button variant="ghost" onClick={() => setEditEvent(null)}>
                 Cancel
