@@ -3,6 +3,7 @@ import { UiContext } from '../App.jsx';
 import Button from '../components/ui/Button.jsx';
 import Card from '../components/ui/Card.jsx';
 import Badge from '../components/ui/Badge.jsx';
+import { formatDisplayDate } from '../utils/dateFormat.js';
 
 function toDateOrNull(value) {
   if (!value) return null;
@@ -14,22 +15,10 @@ function isAllDay(value) {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
-function formatAllDay(value) {
-  const parts = String(value).split('-');
-  if (parts.length !== 3) return String(value);
-  const [year, month, day] = parts;
-  if (!year || !month || !day) return String(value);
-  const pad = (num) => String(num).padStart(2, '0');
-  return `${pad(day)}/${pad(month)}/${year}`;
-}
-
 function formatDate(value) {
   if (!value) return 'N/A';
-  if (isAllDay(value)) return formatAllDay(value);
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  const pad = (num) => String(num).padStart(2, '0');
-  return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+  if (isAllDay(value)) return formatDisplayDate(value, { includeTime: false, fallback: 'N/A' });
+  return formatDisplayDate(value, { fallback: 'N/A' });
 }
 
 function formatTime(value) {
