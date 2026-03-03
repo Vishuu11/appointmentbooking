@@ -2,7 +2,7 @@ import React, { useContext, useEffect, useState } from 'react';
 import { UiContext } from '../App.jsx';
 import Card from '../components/ui/Card.jsx';
 import Button from '../components/ui/Button.jsx';
-import { formatDisplayDate, formatIsoDateToDmy, parseDmyToIso } from '../utils/dateFormat.js';
+import { formatDisplayDate } from '../utils/dateFormat.js';
 
 function toDateOrNull(value) {
   if (!value) return null;
@@ -98,9 +98,7 @@ export default function SearchPage() {
     slotDuration: 'all',
     customDuration: '45',
     fromDate: '',
-    fromDateText: '',
     toDate: '',
-    toDateText: '',
     fromTime: '00:00',
     toTime: '00:00',
     sortBy: 'startAsc',
@@ -110,9 +108,7 @@ export default function SearchPage() {
     slotDuration: 'all',
     customDuration: '45',
     fromDate: '',
-    fromDateText: '',
     toDate: '',
-    toDateText: '',
     fromTime: '00:00',
     toTime: '00:00',
     sortBy: 'startAsc',
@@ -123,14 +119,6 @@ export default function SearchPage() {
   useEffect(() => {
     setFilters((prev) => ({ ...prev, searchText: searchQuery }));
   }, [searchQuery]);
-
-  useEffect(() => {
-    setFilters((prev) => ({
-      ...prev,
-      fromDateText: prev.fromDate ? formatIsoDateToDmy(prev.fromDate) : prev.fromDateText,
-      toDateText: prev.toDate ? formatIsoDateToDmy(prev.toDate) : prev.toDateText,
-    }));
-  }, [filters.fromDate, filters.toDate]);
 
   useEffect(() => {
     const load = async () => {
@@ -252,9 +240,7 @@ export default function SearchPage() {
       slotDuration: 'all',
       customDuration: '45',
       fromDate: '',
-      fromDateText: '',
       toDate: '',
-      toDateText: '',
       fromTime: '00:00',
       toTime: '00:00',
       sortBy: 'startAsc',
@@ -345,19 +331,14 @@ export default function SearchPage() {
                 From Date
                 <input
                   className="input"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="dd/mm/yyyy"
-                  value={filters.fromDateText}
+                  type="date"
+                  value={filters.fromDate}
                   onChange={(e) => {
                     const value = e.target.value;
-                    const iso = parseDmyToIso(value);
                     setFilters((f) => ({
                       ...f,
-                      fromDateText: value,
-                      fromDate: iso || '',
-                      toDate: f.toDate && iso && f.toDate < iso ? '' : f.toDate,
-                      toDateText: f.toDate && iso && f.toDate < iso ? '' : f.toDateText,
+                      fromDate: value,
+                      toDate: f.toDate && value && f.toDate < value ? '' : f.toDate,
                     }));
                   }}
                   aria-label="From date"
@@ -367,19 +348,10 @@ export default function SearchPage() {
                 To Date
                 <input
                   className="input"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="dd/mm/yyyy"
-                  value={filters.toDateText}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    const iso = parseDmyToIso(value);
-                    setFilters((f) => ({
-                      ...f,
-                      toDateText: value,
-                      toDate: iso || '',
-                    }));
-                  }}
+                  type="date"
+                  value={filters.toDate}
+                  min={filters.fromDate || undefined}
+                  onChange={(e) => setFilters((f) => ({ ...f, toDate: e.target.value }))}
                   aria-label="To date"
                 />
               </label>
